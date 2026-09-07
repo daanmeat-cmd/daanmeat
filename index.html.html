@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大安區肉品市場 · 飯包訂購與結算</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F7F5F1;
+    --surface:#FFFFFF;
+    --surface-alt:#F0EBE0;
+    --ink:#232520;
+    --ink-soft:#666C61;
+    --primary:#2F4030;
+    --primary-dark:#1E2B20;
+    --primary-soft:#DCE3D3;
+    --accent:#B8863B;
+    --accent-soft:#F1E4C8;
+    --border:#DDD6C6;
+    --danger:#A6432E;
+    --danger-soft:#F3DCD5;
+    --success:#3F7A4E;
+    --success-soft:#DCEADF;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans TC',sans-serif;line-height:1.6;}
+  h1,h2,h3,.serif{font-family:'Noto Serif TC',serif;}
+  .app{max-width:1040px;margin:0 auto;padding:0 20px 60px;}
+  header.letterhead{border-bottom:3px double var(--primary);padding:28px 20px 18px;margin-bottom:28px;background:var(--surface);}
+  header.letterhead .row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;max-width:1040px;margin:0 auto;}
+  header.letterhead h1{font-size:26px;color:var(--primary-dark);margin:0;font-weight:900;letter-spacing:1px;}
+  header.letterhead .sub{color:var(--ink-soft);font-size:13px;margin-top:4px;}
+  header.letterhead .who{font-size:13px;color:var(--ink-soft);text-align:right;}
+  header.letterhead .who b{color:var(--ink);font-weight:700;}
+  .switch-role{background:none;border:1px solid var(--primary);color:var(--primary);border-radius:3px;padding:3px 10px;font-size:12px;cursor:pointer;margin-left:8px;font-family:inherit;}
+  .switch-role:hover{background:var(--primary-soft);}
+  .notice{background:var(--accent-soft);border:1px solid var(--accent);border-radius:4px;padding:12px 16px;font-size:13px;color:#5A421C;margin-bottom:24px;}
+  .notice b{color:var(--accent);}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:22px 24px;margin-bottom:20px;}
+  .card h2{font-size:18px;margin:0 0 4px;color:var(--primary-dark);}
+  .card .desc{font-size:13px;color:var(--ink-soft);margin-bottom:16px;}
+
+  .tabs{display:flex;gap:6px;margin-bottom:22px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .tab-btn{background:none;border:none;padding:10px 16px;font-size:14px;font-family:inherit;color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+  .tab-btn.active{color:var(--primary-dark);border-bottom-color:var(--accent);font-weight:700;}
+  .tab-btn:hover{color:var(--primary-dark);}
+
+  label{display:block;font-size:13px;color:var(--ink-soft);margin-bottom:5px;}
+  select,input[type=text],input[type=date]{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:4px;font-family:inherit;font-size:14px;background:#fff;color:var(--ink);}
+  select:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  .field{margin-bottom:14px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:600px){.grid2{grid-template-columns:1fr;}}
+
+  button.primary{background:var(--primary);color:#fff;border:none;padding:11px 22px;border-radius:4px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;}
+  button.primary:hover{background:var(--primary-dark);}
+  button.secondary{background:none;border:1px solid var(--primary);color:var(--primary);padding:9px 18px;border-radius:4px;font-family:inherit;font-size:13px;cursor:pointer;}
+  button.secondary:hover{background:var(--primary-soft);}
+  button.ghost{background:none;border:1px solid var(--border);color:var(--ink-soft);padding:6px 12px;border-radius:4px;font-family:inherit;font-size:12px;cursor:pointer;}
+  button.confirm-armed{background:var(--danger)!important;color:#fff!important;border-color:var(--danger)!important;}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);}
+  th{color:var(--ink-soft);font-weight:700;background:var(--surface-alt);}
+  tr:last-child td{border-bottom:none;}
+  .num{text-align:right;font-variant-numeric:tabular-nums;}
+
+  .day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:16px 0;}
+  @media(max-width:700px){.day-grid{grid-template-columns:repeat(4,1fr);}}
+  .day-box{border:1px solid var(--border);border-radius:5px;padding:10px 6px;text-align:center;cursor:pointer;background:#fff;user-select:none;}
+  .day-box .dow{font-size:12px;color:var(--ink-soft);}
+  .day-box .dnum{font-size:15px;font-weight:700;margin:3px 0;}
+  .day-box.selected{background:var(--primary-soft);border-color:var(--primary);}
+  .day-box.selected .dnum{color:var(--primary-dark);}
+  .day-box.disabled{opacity:.75;cursor:default;}
+  .day-box.disabled.selected{background:var(--accent-soft);border-color:var(--accent);}
+  .day-box.disabled:not(.selected){opacity:.4;}
+
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:700;}
+  .pill.paid{background:var(--success-soft);color:var(--success);}
+  .pill.unpaid{background:var(--danger-soft);color:var(--danger);}
+  .pill.add{background:var(--success-soft);color:var(--success);}
+  .pill.cancel{background:var(--danger-soft);color:var(--danger);}
+
+  .summary-row{display:flex;gap:22px;flex-wrap:wrap;margin:14px 0;}
+  .stat{background:var(--surface-alt);border-radius:5px;padding:12px 18px;min-width:120px;}
+  .stat .n{font-size:24px;font-weight:900;font-family:'Noto Serif TC',serif;color:var(--primary-dark);}
+  .stat .l{font-size:12px;color:var(--ink-soft);}
+
+  .login-wrap{max-width:420px;margin:80px auto;}
+  .empty{color:var(--ink-soft);font-size:13px;padding:16px 0;text-align:center;}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .banner-err{background:var(--danger-soft);color:var(--danger);border-radius:4px;padding:8px 12px;font-size:13px;margin-bottom:12px;}
+  .banner-ok{background:var(--success-soft);color:var(--success);border-radius:4px;padding:8px 12px;font-size:13px;margin-bottom:12px;}
+  .flex-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+</style>
+</head>
+<body>
+<div id="root"><div class="app"><p class="empty">載入中…</p></div></div>
+
+<script>
+const DEPTS = ["總務課","業務課","電宰課","會計課","加工課"];
+const DOW = ["一","二","三","四","五","六","日"];
+const PRICE_FULL = 120, PRICE_STAFF = 50;
+
+// ---------- storage helpers ----------
+async function sGet(key, fallback){
+  try{
+    const r = await window.storage.get(key, true);
+    if(!r) return fallback;
+    return JSON.parse(r.value);
+  }catch(e){ return fallback; }
+}
+async function sSet(key, value){
+  try{
+    await window.storage.set(key, JSON.stringify(value), true);
+    return true;
+  }catch(e){ console.error('storage set failed', key, e); return false; }
+}
+async function sListKeys(prefix){
+  try{
+    const r = await window.storage.list(prefix, true);
+    return (r && r.keys) ? r.keys : [];
+  }catch(e){ return []; }
+}
+
+// ---------- inline confirm (avoids window.confirm, which some embedded/sandboxed views block silently) ----------
+function armConfirm(btn, confirmLabel, action){
+  if(btn.dataset.armed==='1'){
+    btn.dataset.armed='0';
+    clearTimeout(btn._armTimer);
+    btn.disabled = true;
+    Promise.resolve(action()).finally(()=>{ btn.disabled = false; });
+    return;
+  }
+  btn._original = btn._original || btn.textContent;
+  btn.dataset.armed='1';
+  btn.textContent = confirmLabel || '確定？再按一次';
+  btn.classList.add('confirm-armed');
+  btn._armTimer = setTimeout(()=>{
+    btn.dataset.armed='0';
+    btn.textContent = btn._original;
+    btn.classList.remove('confirm-armed');
+  }, 4000);
+}
+
+// ---------- date helpers ----------
+function pad(n){return String(n).padStart(2,'0');}
+function iso(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function fromIso(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+function mondayOf(d){const day=(d.getDay()+6)%7;return addDays(d,-day);}
+function fmtShort(s){const d=fromIso(s);return `${d.getMonth()+1}/${d.getDate()}`;}
+function fmtDow(s){const d=fromIso(s);return `週${DOW[(d.getDay()+6)%7]}`;}
+
+// settlement period: ends the Sunday before the week containing the 25th of (year,month)
+function periodEndFor(year, month){ // month: 1-12
+  const the25 = new Date(year, month-1, 25);
+  const wkStart = mondayOf(the25); // monday of week containing 25th
+  return addDays(wkStart, -1); // sunday before
+}
+function periodFor(year, month){
+  const end = periodEndFor(year, month);
+  // previous period end
+  let py = month===1 ? year-1 : year, pm = month===1 ? 12 : month-1;
+  const prevEnd = periodEndFor(py, pm);
+  const start = addDays(prevEnd, 1);
+  return { key:`${year}-${pad(month)}`, label:`${year}年${month}月結算（${iso(start)} ~ ${iso(end)}）`, start:iso(start), end:iso(end) };
+}
+function periodForDate(dateStr){
+  const d = fromIso(dateStr);
+  // try the date's month and month+1 (since period spans into next month typically)
+  for(const off of [0,1,-1]){
+    let y=d.getFullYear(), m=d.getMonth()+1+off;
+    while(m<1){m+=12;y--;} while(m>12){m-=12;y++;}
+    const p = periodFor(y,m);
+    if(dateStr>=p.start && dateStr<=p.end) return p;
+  }
+  return null;
+}
+
+// ---------- app state ----------
+let state = {
+  identity: null, // {dept,name}
+  adminMode: false,
+  view: null, // 'adminLogin' when on the admin password screen
+  adminPassword: '0000',
+  tab: null,
+  roster: {},
+  surveys: [],
+  adhoc: [],
+  paid: {},
+  ordersCache: {}, // surveyId -> {empKey: {dates,updatedAt}}
+  loading: true,
+};
+
+function empKey(dept,name){ return `${dept}__${name}`; }
+
+async function loadAll(){
+  state.roster = await sGet('roster', {});
+  state.surveys = await sGet('surveys', []);
+  state.adhoc = await sGet('adhoc_records', []);
+  state.paid = await sGet('paid_status', {});
+  let pw = await sGet('admin_password', null);
+  if(pw===null){ pw = '0000'; await sSet('admin_password', pw); }
+  state.adminPassword = pw;
+}
+
+async function loadOrdersForSurvey(surveyId){
+  if(state.ordersCache[surveyId]) return state.ordersCache[surveyId];
+  const keys = await sListKeys(`order:${surveyId}:`);
+  const out = {};
+  for(const k of keys){
+    const v = await sGet(k, null);
+    if(v && v.active!==false){ out[k.slice(`order:${surveyId}:`.length)] = v; }
+  }
+  state.ordersCache[surveyId] = out;
+  return out;
+}
+function invalidateOrders(surveyId){ delete state.ordersCache[surveyId]; }
+function fullWeekDates(s){
+  // Prefer stored allDates; otherwise derive the full Mon–Sun range from weekStart so
+  // older survey records (saved before allDates existed) still show all 7 days.
+  if(s.allDates && s.allDates.length===7) return s.allDates;
+  return Array.from({length:7},(_,i)=>iso(addDays(fromIso(s.weekStart), i)));
+}
+
+async function registerRoster(dept,name){
+  if(!state.roster[dept]) state.roster[dept]=[];
+  if(!state.roster[dept].includes(name)){
+    state.roster[dept].push(name);
+    await sSet('roster', state.roster);
+  }
+}
+
+// ---------- render root ----------
+async function render(){
+  const root = document.getElementById('root');
+  if(state.loading){
+    root.innerHTML = `<div class="app"><header class="letterhead"><div class="row"><div><h1>大安區肉品市場</h1><div class="sub">飯包訂購與結算</div></div></div></div><p class="empty">載入中…</p></div>`;
+    await loadAll();
+    state.loading = false;
+  }
+  if(state.view==='adminLogin'){ renderAdminLogin(); return; }
+  if(!state.identity){ renderLogin(); return; }
+  renderMain();
+}
+
+function renderLogin(){
+  const root = document.getElementById('root');
+  root.innerHTML = `
+  <div class="app">
+    <header class="letterhead"><div class="row"><div>
+      <h1>大安區肉品市場</h1><div class="sub">飯包訂購與結算</div>
+    </div></div></header>
+    <div class="login-wrap card">
+      <h2>登入</h2>
+      <div class="desc">請選擇您的部門並輸入姓名，以進行飯包訂購或查詢。</div>
+      <div class="field">
+        <label>部門</label>
+        <select id="loginDept">
+          <option value="">請選擇部門</option>
+          ${DEPTS.map(d=>`<option value="${d}">${d}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>姓名</label>
+        <input type="text" id="loginName" placeholder="請輸入姓名">
+      </div>
+      <div id="loginErr"></div>
+      <button class="primary" id="loginBtn">登入系統</button>
+    </div>
+    <div style="text-align:center;margin-top:16px;">
+      <button class="switch-role" id="goAdminLogin">🔒 總務課後台管理登入</button>
+    </div>
+  </div>`;
+  document.getElementById('loginBtn').onclick = async ()=>{
+    const dept = document.getElementById('loginDept').value;
+    const name = document.getElementById('loginName').value.trim();
+    const errEl = document.getElementById('loginErr');
+    if(!dept || !name){ errEl.innerHTML = `<div class="banner-err">請選擇部門並輸入姓名</div>`; return; }
+    state.identity = {dept,name};
+    await registerRoster(dept,name);
+    state.tab = 'order';
+    render();
+  };
+  document.getElementById('goAdminLogin').onclick = ()=>{ state.view='adminLogin'; render(); };
+}
+
+function renderAdminLogin(){
+  const root = document.getElementById('root');
+  root.innerHTML = `
+  <div class="app">
+    <header class="letterhead"><div class="row"><div>
+      <h1>大安區肉品市場</h1><div class="sub">總務課後台管理</div>
+    </div></div></header>
+    <div class="login-wrap card">
+      <h2>後台管理登入</h2>
+      <div class="desc">此區僅供總務課管理人員使用，初始密碼為 0000，登入後請至「帳號設定」變更密碼。</div>
+      <div class="field">
+        <label>操作人員姓名</label>
+        <input type="text" id="adNameInput" placeholder="請輸入姓名（用於登錄紀錄）">
+      </div>
+      <div class="field">
+        <label>密碼</label>
+        <input type="text" id="adPwInput" placeholder="請輸入密碼">
+      </div>
+      <div id="adErr"></div>
+      <button class="primary" id="adLoginBtn">登入後台</button>
+    </div>
+    <div style="text-align:center;margin-top:16px;">
+      <button class="switch-role" id="backToLogin">← 返回員工登入</button>
+    </div>
+  </div>`;
+  document.getElementById('backToLogin').onclick = ()=>{ state.view=null; render(); };
+  document.getElementById('adLoginBtn').onclick = async ()=>{
+    const name = document.getElementById('adNameInput').value.trim();
+    const pw = document.getElementById('adPwInput').value;
+    const errEl = document.getElementById('adErr');
+    if(!name){ errEl.innerHTML = `<div class="banner-err">請輸入操作人員姓名</div>`; return; }
+    if(pw !== state.adminPassword){ errEl.innerHTML = `<div class="banner-err">密碼錯誤</div>`; return; }
+    state.identity = {dept:'總務課', name};
+    await registerRoster('總務課', name);
+    state.adminMode = true;
+    state.view = null;
+    state.tab = 'admin_surveys';
+    render();
+  };
+}
+
+function renderMain(){
+  const root = document.getElementById('root');
+  root.innerHTML = `
+  <div class="app">
+    <header class="letterhead">
+      <div class="row">
+        <div>
+          <h1>大安區肉品市場</h1>
+          <div class="sub">${state.adminMode? '總務課後台管理':'飯包訂購與結算'}</div>
+        </div>
+        <div class="who">
+          <b>${state.identity.dept} · ${state.identity.name}</b>
+          ${state.adminMode
+            ? `<button class="switch-role" id="exitAdmin">登出後台</button>`
+            : `<button class="switch-role" id="goAdminLogin2">🔒 總務課後台</button>`}
+          <button class="switch-role" id="logoutBtn">重新登入</button>
+        </div>
+      </div>
+    </header>
+    <div class="notice">
+      <b>惜福惜餐・ESG企業永續</b>：飛天豬溯源飯包每份原價新臺幣120元，自115年8月10日（一）起，員工訂餐每份自付50元，差額70元由市場補助，列為員工福利。總務課於每週四發送下週調查，請當日回填；一般加減訂請於前一日14:00前通知，臨時出差、病假等突發事由請於當日上午9:00前通知，經餐館確認後始生效。
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="tabContent"></div>
+  </div>`;
+
+  if(state.adminMode){
+    document.getElementById('exitAdmin').onclick = ()=>{
+      state.adminMode = false; state.tab='order'; render();
+    };
+  } else {
+    document.getElementById('goAdminLogin2').onclick = ()=>{ state.view='adminLogin'; render(); };
+  }
+  document.getElementById('logoutBtn').onclick = ()=>{
+    state.identity = null; state.adminMode=false; state.view=null; render();
+  };
+
+  const tabsEl = document.getElementById('tabs');
+  let tabDefs;
+  if(state.adminMode){
+    tabDefs = [
+      ['admin_surveys','週次調查管理'],
+      ['admin_adhoc','臨時加退登錄'],
+      ['admin_settle','每月結算'],
+      ['admin_settings','帳號設定'],
+    ];
+  } else {
+    tabDefs = [
+      ['order','我要訂飯包'],
+      ['records','我的訂購紀錄'],
+    ];
+  }
+  if(!state.tab || !tabDefs.find(t=>t[0]===state.tab)) state.tab = tabDefs[0][0];
+  tabsEl.innerHTML = tabDefs.map(([id,label])=>
+    `<button class="tab-btn ${state.tab===id?'active':''}" data-tab="${id}">${label}</button>`).join('');
+  tabsEl.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.onclick = ()=>{ state.tab = btn.dataset.tab; renderTabContent(); };
+  });
+  renderTabContent();
+}
+
+async function renderTabContent(){
+  // update active class without full re-render of header
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===state.tab));
+  const el = document.getElementById('tabContent');
+  el.innerHTML = `<p class="empty">載入中…</p>`;
+  if(state.tab==='order') return renderOrderTab(el);
+  if(state.tab==='records') return renderRecordsTab(el);
+  if(state.tab==='admin_surveys') return renderAdminSurveys(el);
+  if(state.tab==='admin_adhoc') return renderAdminAdhoc(el);
+  if(state.tab==='admin_settle') return renderAdminSettle(el);
+  if(state.tab==='admin_settings') return renderAdminSettings(el);
+}
+
+// ---------- 管理：帳號設定（變更密碼） ----------
+async function renderAdminSettings(el){
+  el.innerHTML = `
+  <div class="card" style="max-width:420px;">
+    <h2>變更後台密碼</h2>
+    <div class="desc">變更後，所有總務課人員登入後台時皆須使用新密碼。</div>
+    <div class="field"><label>目前密碼</label><input type="text" id="pwOld" placeholder="請輸入目前密碼"></div>
+    <div class="field"><label>新密碼</label><input type="text" id="pwNew" placeholder="請輸入新密碼"></div>
+    <div class="field"><label>確認新密碼</label><input type="text" id="pwNew2" placeholder="請再輸入一次新密碼"></div>
+    <div id="pwMsg"></div>
+    <button class="primary" id="pwSubmit">更新密碼</button>
+  </div>`;
+  document.getElementById('pwSubmit').onclick = async ()=>{
+    const oldPw = document.getElementById('pwOld').value;
+    const newPw = document.getElementById('pwNew').value;
+    const newPw2 = document.getElementById('pwNew2').value;
+    const msgEl = document.getElementById('pwMsg');
+    if(oldPw !== state.adminPassword){ msgEl.innerHTML = `<div class="banner-err">目前密碼不正確</div>`; return; }
+    if(!newPw || newPw.length<4){ msgEl.innerHTML = `<div class="banner-err">新密碼至少需4碼</div>`; return; }
+    if(newPw !== newPw2){ msgEl.innerHTML = `<div class="banner-err">兩次輸入的新密碼不一致</div>`; return; }
+    const ok = await sSet('admin_password', newPw);
+    if(ok){ state.adminPassword = newPw; msgEl.innerHTML = `<div class="banner-ok">密碼已更新</div>`; }
+    else { msgEl.innerHTML = `<div class="banner-err">更新失敗，請再試一次</div>`; }
+  };
+}
+
+// ---------- 員工：我要訂飯包 ----------
+async function renderOrderTab(el){
+  const openSurveys = state.surveys.filter(s=>s.active && !s.closed).sort((a,b)=>b.weekStart.localeCompare(a.weekStart));
+  if(openSurveys.length===0){
+    el.innerHTML = `<div class="card"><h2>我要訂飯包</h2><div class="desc">目前尚無開放中的調查週次，請等候總務課發送。</div></div>`;
+    return;
+  }
+  let html = '';
+  for(const s of openSurveys){
+    const orders = await loadOrdersForSurvey(s.id);
+    const mine = orders[empKey(state.identity.dept,state.identity.name)];
+    const locked = !!mine;
+    const dates = mine ? mine.dates : [];
+    const weekDates = fullWeekDates(s);
+    html += `
+    <div class="card" data-survey="${s.id}">
+      <div class="flex-between">
+        <div>
+          <h2>${fmtShort(s.weekStart)} ~ ${fmtShort(s.weekEnd)} 飯包調查</h2>
+          <div class="desc">請勾選需要訂購飯包的日期（每份自付 NT$${PRICE_STAFF}）</div>
+        </div>
+      </div>
+      ${locked ? `<div class="notice" style="margin-bottom:14px;">您已送出本週次的調查，內容無法自行修改。如需異動，請通知總務課進行臨時加退訂，或請總務課於後台刪除本筆紀錄後重新填寫。</div>` : ''}
+      <div class="day-grid" id="grid-${s.id}">
+        ${weekDates.map(d=>{
+          const orderable = s.dates.includes(d);
+          const isSel = dates.includes(d);
+          const isDisabled = locked || !orderable;
+          return `
+          <div class="day-box ${isSel?'selected':''} ${isDisabled?'disabled':''}" data-date="${d}" data-orderable="${orderable?'1':'0'}">
+            <div class="dow">${fmtDow(d)}</div>
+            <div class="dnum">${fmtShort(d)}</div>
+            ${!orderable?'<div class="hint" style="margin-top:2px;">未供餐</div>':''}
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="summary-row">
+        <div class="stat"><div class="n" id="cnt-${s.id}">${dates.length}</div><div class="l">份飯包</div></div>
+        <div class="stat"><div class="n" id="amt-${s.id}">$${dates.length*PRICE_STAFF}</div><div class="l">應自付金額</div></div>
+      </div>
+      ${locked ? `<span style="font-size:13px;color:var(--ink-soft);">已送出時間：${new Date(mine.updatedAt).toLocaleString('zh-TW')}</span>`
+               : `<button class="primary" id="save-${s.id}">送出訂購</button><span id="msg-${s.id}" style="margin-left:12px;font-size:13px;"></span>`}
+    </div>`;
+  }
+  el.innerHTML = html;
+
+  for(const s of openSurveys){
+    const orders = await loadOrdersForSurvey(s.id);
+    const locked = !!orders[empKey(state.identity.dept,state.identity.name)];
+    if(locked) continue;
+    const grid = document.getElementById(`grid-${s.id}`);
+    const cntEl = document.getElementById(`cnt-${s.id}`);
+    const amtEl = document.getElementById(`amt-${s.id}`);
+    grid.querySelectorAll('.day-box').forEach(box=>{
+      if(box.dataset.orderable!=='1') return; // not offered this day, can't toggle
+      box.onclick = ()=>{
+        box.classList.toggle('selected');
+        const n = grid.querySelectorAll('.day-box.selected').length;
+        cntEl.textContent = n;
+        amtEl.textContent = `$${n*PRICE_STAFF}`;
+      };
+    });
+    document.getElementById(`save-${s.id}`).onclick = async ()=>{
+      const dates = Array.from(grid.querySelectorAll('.day-box.selected')).map(b=>b.dataset.date);
+      const key = `order:${s.id}:${empKey(state.identity.dept,state.identity.name)}`;
+      const ok = await sSet(key, {dates, updatedAt:new Date().toISOString(), active:true});
+      invalidateOrders(s.id);
+      if(ok){ renderOrderTab(el); return; }
+      const msg = document.getElementById(`msg-${s.id}`);
+      msg.textContent = ok ? '已儲存 ✓' : '儲存失敗，請再試一次';
+      msg.style.color = ok ? 'var(--success)' : 'var(--danger)';
+    };
+  }
+}
+
+// ---------- 員工：我的訂購紀錄 ----------
+async function renderRecordsTab(el){
+  const today = new Date();
+  const defStart = iso(addDays(mondayOf(today), -21));
+  const defEnd = iso(addDays(mondayOf(today), 13));
+  el.innerHTML = `
+  <div class="card">
+    <h2>我的訂購紀錄</h2>
+    <div class="desc">以週為單位查詢您的飯包訂購紀錄與應繳金額</div>
+    <div class="grid2">
+      <div class="field"><label>起始日期</label><input type="date" id="recStart" value="${defStart}"></div>
+      <div class="field"><label>結束日期</label><input type="date" id="recEnd" value="${defEnd}"></div>
+    </div>
+    <button class="secondary" id="recQuery">查詢</button>
+  </div>
+  <div id="recResults"></div>`;
+  document.getElementById('recQuery').onclick = ()=>loadRecords();
+  await loadRecords();
+
+  async function loadRecords(){
+    const start = document.getElementById('recStart').value;
+    const end = document.getElementById('recEnd').value;
+    const resEl = document.getElementById('recResults');
+    resEl.innerHTML = `<p class="empty">載入中…</p>`;
+    const myKey = empKey(state.identity.dept, state.identity.name);
+    let rows = []; // {date, source, type}
+    for(const s of state.surveys){
+      if(s.weekEnd < start || s.weekStart > end) continue;
+      const orders = await loadOrdersForSurvey(s.id);
+      const mine = orders[myKey];
+      if(!mine) continue;
+      for(const d of mine.dates){
+        if(d>=start && d<=end) rows.push({date:d, type:'訂購'});
+      }
+    }
+    const myAdhoc = state.adhoc.filter(a=>a.dept===state.identity.dept && a.name===state.identity.name && a.date>=start && a.date<=end);
+    for(const a of myAdhoc){ rows.push({date:a.date, type: a.type==='add'?'臨時加訂':'臨時減訂'}); }
+    rows.sort((a,b)=>a.date.localeCompare(b.date));
+
+    // group by settlement period for paid status + totals
+    const periodTotals = {};
+    for(const r of rows){
+      const p = periodForDate(r.date);
+      const pk = p ? p.key : '未歸屬';
+      if(!periodTotals[pk]) periodTotals[pk] = {label:p?p.label:'未歸屬結算區間', count:0};
+      periodTotals[pk].count += (r.type==='臨時減訂') ? -1 : 1;
+    }
+
+    if(rows.length===0){
+      resEl.innerHTML = `<div class="card"><div class="empty">此區間內查無訂購紀錄</div></div>`;
+      return;
+    }
+
+    let html = `<div class="card"><h2>結算區間彙總</h2><table><thead><tr><th>結算區間</th><th class="num">份數</th><th class="num">應繳金額</th><th>結清狀態</th></tr></thead><tbody>`;
+    for(const pk in periodTotals){
+      const t = periodTotals[pk];
+      const paidRec = state.paid[`${pk}:${state.identity.dept}:${state.identity.name}`];
+      html += `<tr><td>${t.label}</td><td class="num">${t.count}</td><td class="num">$${t.count*PRICE_STAFF}</td>
+        <td><span class="pill ${paidRec&&paidRec.paid?'paid':'unpaid'}">${paidRec&&paidRec.paid?'已結清':'未結清'}</span></td></tr>`;
+    }
+    html += `</tbody></table></div>`;
+
+    html += `<div class="card"><h2>明細</h2><table><thead><tr><th>日期</th><th>星期</th><th>類型</th></tr></thead><tbody>`;
+    for(const r of rows){
+      html += `<tr><td>${r.date}</td><td>${fmtDow(r.date)}</td><td>${r.type}</td></tr>`;
+    }
+    html += `</tbody></table></div>`;
+    resEl.innerHTML = html;
+  }
+}
+
+// ---------- 管理：週次調查管理 ----------
+async function renderAdminSurveys(el){
+  const today = new Date();
+  const nextMon = iso(addDays(mondayOf(today), state.surveys.length? 0:7));
+  el.innerHTML = `
+  <div class="card">
+    <h2>建立新調查週次</h2>
+    <div class="desc">選擇週一起始日期，系統自動產生一週七天，可取消勾選不需調查的日期（例如國定假日）。</div>
+    <div class="field" style="max-width:220px;"><label>週一日期</label><input type="date" id="newWeekStart" value="${nextMon}"></div>
+    <div class="day-grid" id="newWeekGrid"></div>
+    <button class="primary" id="createSurvey">建立並發布調查</button>
+    <span id="createMsg" style="margin-left:12px;font-size:13px;"></span>
+  </div>
+  <div class="card"><h2>調查週次列表</h2><div id="surveyList"></div></div>`;
+
+  function buildGrid(){
+    const startVal = document.getElementById('newWeekStart').value;
+    if(!startVal) return;
+    const mon = mondayOf(fromIso(startVal));
+    const dates = Array.from({length:7},(_,i)=>iso(addDays(mon,i)));
+    document.getElementById('newWeekGrid').innerHTML = dates.map(d=>
+      `<div class="day-box selected" data-date="${d}"><div class="dow">${fmtDow(d)}</div><div class="dnum">${fmtShort(d)}</div></div>`
+    ).join('');
+    document.querySelectorAll('#newWeekGrid .day-box').forEach(b=>{
+      b.onclick = ()=>b.classList.toggle('selected');
+    });
+  }
+  document.getElementById('newWeekStart').onchange = buildGrid;
+  buildGrid();
+
+  document.getElementById('createSurvey').onclick = async ()=>{
+    const startVal = document.getElementById('newWeekStart').value;
+    const mon = mondayOf(fromIso(startVal));
+    const allDates = Array.from({length:7},(_,i)=>iso(addDays(mon,i)));
+    const enabled = Array.from(document.querySelectorAll('#newWeekGrid .day-box.selected')).map(b=>b.dataset.date);
+    const survey = {
+      id: 'sv_'+Date.now(),
+      weekStart: allDates[0], weekEnd: allDates[6],
+      allDates: allDates, dates: enabled, active:true, closed:false,
+      createdAt: new Date().toISOString()
+    };
+    state.surveys.push(survey);
+    const ok = await sSet('surveys', state.surveys);
+    const msg = document.getElementById('createMsg');
+    msg.textContent = ok? '已發布 ✓' : '發布失敗';
+    msg.style.color = ok?'var(--success)':'var(--danger)';
+    renderSurveyList();
+  };
+
+  await renderSurveyList();
+
+  async function renderSurveyList(){
+    const listEl = document.getElementById('surveyList');
+    if(state.surveys.length===0){ listEl.innerHTML = `<div class="empty">尚未建立任何調查週次</div>`; return; }
+    const sorted = [...state.surveys].sort((a,b)=>b.weekStart.localeCompare(a.weekStart));
+    let html = '';
+    for(const s of sorted){
+      const orders = await loadOrdersForSurvey(s.id);
+      let total = 0; const byDept = {};
+      for(const k in orders){
+        const [dept] = k.split('__');
+        const n = orders[k].dates.length;
+        total += n;
+        byDept[dept] = (byDept[dept]||0) + n;
+      }
+      html += `<div style="border-top:1px solid var(--border);padding:12px 0;">
+        <div class="flex-between">
+          <div><b>${fmtShort(s.weekStart)} ~ ${fmtShort(s.weekEnd)}</b> ${s.closed?'<span class="pill unpaid">已關閉</span>':'<span class="pill paid">調查中</span>'}</div>
+          <div>
+            <button class="ghost" data-detail="${s.id}">查看統計</button>
+            ${!s.closed?`<button class="ghost" data-close="${s.id}">關閉調查</button>`:`<button class="ghost" data-open="${s.id}">重新開放</button>`}
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--ink-soft);margin-top:4px;">合計 ${total} 份 · ${Object.entries(byDept).map(([d,n])=>`${d} ${n}份`).join('、')||'尚無訂購'}</div>
+        <div id="detail-${s.id}"></div>
+      </div>`;
+    }
+    listEl.innerHTML = html;
+    listEl.querySelectorAll('[data-close]').forEach(b=>b.onclick=async()=>{
+      const sv = state.surveys.find(x=>x.id===b.dataset.close); sv.closed=true;
+      await sSet('surveys', state.surveys); renderSurveyList();
+    });
+    listEl.querySelectorAll('[data-open]').forEach(b=>b.onclick=async()=>{
+      const sv = state.surveys.find(x=>x.id===b.dataset.open); sv.closed=false;
+      await sSet('surveys', state.surveys); renderSurveyList();
+    });
+    listEl.querySelectorAll('[data-detail]').forEach(b=>b.onclick=async()=>{
+      const sid = b.dataset.detail;
+      const orders = await loadOrdersForSurvey(sid);
+      const s = state.surveys.find(x=>x.id===sid);
+      const weekDates = fullWeekDates(s);
+      const perDate = {}; weekDates.forEach(d=>perDate[d]=0);
+      for(const k in orders){ orders[k].dates.forEach(d=>{ if(perDate[d]!==undefined) perDate[d]++; }); }
+      const dEl = document.getElementById(`detail-${sid}`);
+      const empRows = Object.keys(orders).sort().map(k=>{
+        const [dept,name] = k.split('__');
+        const o = orders[k];
+        return `<tr>
+          <td>${dept}</td><td>${name}</td>
+          <td>${o.dates.map(fmtShort).join('、')||'（本週不訂）'}</td>
+          <td class="num">${o.dates.length}</td>
+          <td><button class="ghost" data-unlock="${k}">刪除此筆・允許重填</button></td>
+        </tr>`;
+      }).join('');
+      dEl.innerHTML = `
+        <table style="margin-top:8px;"><thead><tr>${weekDates.map(d=>`<th>${fmtDow(d)} ${fmtShort(d)}${!s.dates.includes(d)?'（未供餐）':''}</th>`).join('')}</tr></thead>
+          <tbody><tr>${weekDates.map(d=>`<td class="num">${s.dates.includes(d)?perDate[d]:'—'}</td>`).join('')}</tr></tbody></table>
+        <table style="margin-top:12px;"><thead><tr><th>部門</th><th>姓名</th><th>已勾選日期</th><th class="num">份數</th><th></th></tr></thead>
+          <tbody>${empRows || `<tr><td colspan="5" class="empty">尚無人送出調查</td></tr>`}</tbody></table>`;
+      dEl.querySelectorAll('[data-unlock]').forEach(ub=>ub.onclick=()=>{
+        armConfirm(ub, '再按一次確認刪除', async ()=>{
+          const k = ub.dataset.unlock;
+          const prev = orders[k];
+          const ok = await sSet(`order:${sid}:${k}`, {dates: prev.dates, updatedAt: prev.updatedAt, active:false, unlockedAt: new Date().toISOString(), unlockedBy: state.identity.name});
+          invalidateOrders(sid);
+          if(!ok){
+            const warn = document.createElement('div');
+            warn.className='banner-err'; warn.style.marginTop='8px';
+            warn.textContent='刪除失敗，請確認網路連線後再試一次。';
+            dEl.prepend(warn);
+            return;
+          }
+          b.click(); // refresh detail view
+        });
+      });
+    });
+  }
+}
+
+// ---------- 管理：臨時加退登錄 ----------
+async function renderAdminAdhoc(el){
+  el.innerHTML = `
+  <div class="card">
+    <h2>臨時加訂／減訂登錄</h2>
+    <div class="desc">一般調整請於前一日14:00前登錄；因臨時出差、病假等突發事由，請於當日上午9:00前登錄，並經餐館確認後生效。</div>
+    <div class="grid2">
+      <div class="field"><label>日期</label><input type="date" id="ahDate" value="${iso(new Date())}"></div>
+      <div class="field"><label>類型</label><select id="ahType"><option value="add">臨時加訂</option><option value="cancel">臨時減訂</option></select></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>部門</label><select id="ahDept"><option value="">請選擇部門</option>${DEPTS.map(d=>`<option value="${d}">${d}</option>`).join('')}</select></div>
+      <div class="field"><label>姓名</label><select id="ahName"><option value="">請先選擇部門</option></select></div>
+    </div>
+    <div class="field"><label>姓名不在名單中？可直接輸入</label><input type="text" id="ahNameManual" placeholder="（選填）手動輸入姓名"></div>
+    <div class="grid2">
+      <div class="field"><label>事由</label><select id="ahReason"><option value="一般調整">一般調整</option><option value="臨時出差">臨時出差</option><option value="病假">病假</option><option value="其他突發事由">其他突發事由</option></select></div>
+      <div class="field"><label>餐館是否已確認</label><select id="ahConfirmed"><option value="1">是</option><option value="0">否</option></select></div>
+    </div>
+    <div class="field"><label>備註</label><input type="text" id="ahNote" placeholder="（選填）"></div>
+    <div id="ahErr"></div>
+    <button class="primary" id="ahSubmit">登錄</button>
+  </div>
+  <div class="card"><h2>已登錄紀錄</h2><div id="ahList"></div></div>`;
+
+  document.getElementById('ahDept').onchange = (e)=>{
+    const dept = e.target.value;
+    const names = state.roster[dept] || [];
+    document.getElementById('ahName').innerHTML = `<option value="">請選擇姓名</option>` + names.map(n=>`<option value="${n}">${n}</option>`).join('');
+  };
+
+  document.getElementById('ahSubmit').onclick = async ()=>{
+    const date = document.getElementById('ahDate').value;
+    const type = document.getElementById('ahType').value;
+    const dept = document.getElementById('ahDept').value;
+    const name = document.getElementById('ahNameManual').value.trim() || document.getElementById('ahName').value;
+    const reason = document.getElementById('ahReason').value;
+    const confirmed = document.getElementById('ahConfirmed').value==='1';
+    const note = document.getElementById('ahNote').value.trim();
+    const errEl = document.getElementById('ahErr');
+    if(!date || !dept || !name){ errEl.innerHTML = `<div class="banner-err">請填寫日期、部門與姓名</div>`; return; }
+    const rec = {id:'ah_'+Date.now(), date, type, dept, name, reason, confirmed, note, createdAt:new Date().toISOString()};
+    state.adhoc.push(rec);
+    const ok = await sSet('adhoc_records', state.adhoc);
+    await registerRoster(dept,name);
+    errEl.innerHTML = ok? `<div class="banner-ok">登錄成功</div>` : `<div class="banner-err">登錄失敗，請再試一次</div>`;
+    document.getElementById('ahNameManual').value='';
+    renderAhList();
+  };
+
+  renderAhList();
+  function renderAhList(){
+    const listEl = document.getElementById('ahList');
+    if(state.adhoc.length===0){ listEl.innerHTML = `<div class="empty">尚無登錄紀錄</div>`; return; }
+    const sorted = [...state.adhoc].sort((a,b)=>b.date.localeCompare(a.date));
+    listEl.innerHTML = `<table><thead><tr><th>日期</th><th>部門</th><th>姓名</th><th>類型</th><th>事由</th><th>餐館確認</th><th>備註</th><th></th></tr></thead><tbody>
+      ${sorted.map(a=>`<tr>
+        <td>${a.date}</td><td>${a.dept}</td><td>${a.name}</td>
+        <td><span class="pill ${a.type==='add'?'add':'cancel'}">${a.type==='add'?'加訂':'減訂'}</span></td>
+        <td>${a.reason}</td>
+        <td>${a.confirmed?'<span class="pill paid">已確認</span>':'<span class="pill unpaid">未確認</span>'}</td>
+        <td>${a.note||''}</td>
+        <td><button class="ghost" data-del="${a.id}">刪除</button></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+    listEl.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+      state.adhoc = state.adhoc.filter(x=>x.id!==b.dataset.del);
+      await sSet('adhoc_records', state.adhoc);
+      renderAhList();
+    });
+  }
+}
+
+// ---------- 管理：每月結算 ----------
+async function renderAdminSettle(el){
+  const now = new Date();
+  el.innerHTML = `
+  <div class="card">
+    <h2>每月結算</h2>
+    <div class="desc">結算區間為每月25日前一週之週日往前推算，25日當週不計入本期。</div>
+    <div class="grid2">
+      <div class="field"><label>年份</label><input type="text" id="stYear" value="${now.getFullYear()}"></div>
+      <div class="field"><label>月份（結算月，即25日所屬月份）</label><input type="text" id="stMonth" value="${now.getMonth()+1}"></div>
+    </div>
+    <button class="secondary" id="stCalc">計算結算區間</button>
+  </div>
+  <div id="stResult"></div>`;
+
+  document.getElementById('stCalc').onclick = calc;
+  let pendingMsg = null;
+  await calc();
+
+  async function calc(){
+    const year = parseInt(document.getElementById('stYear').value,10);
+    const month = parseInt(document.getElementById('stMonth').value,10);
+    if(!year||!month||month<1||month>12) return;
+    const p = periodFor(year, month);
+    const resEl = document.getElementById('stResult');
+    resEl.innerHTML = `<p class="empty">計算中…</p>`;
+    state.paid = await sGet('paid_status', state.paid); // refresh in case another session changed it
+
+    // gather all order rows within period
+    const relevant = state.surveys.filter(s=> s.weekStart<=p.end && s.weekEnd>=p.start);
+    const perEmp = {}; // key: dept__name -> {dept,name,count,rows:[{date,type}]}
+    function ensure(dept,name){
+      const k = empKey(dept,name);
+      if(!perEmp[k]) perEmp[k] = {dept,name,count:0,rows:[]};
+      return perEmp[k];
+    }
+    for(const s of relevant){
+      const orders = await loadOrdersForSurvey(s.id);
+      for(const k in orders){
+        const [dept,name] = k.split('__');
+        for(const d of orders[k].dates){
+          if(d>=p.start && d<=p.end){
+            const e = ensure(dept,name);
+            e.count += 1; e.rows.push({date:d,type:'訂購'});
+          }
+        }
+      }
+    }
+    for(const a of state.adhoc){
+      if(a.date>=p.start && a.date<=p.end){
+        const e = ensure(a.dept,a.name);
+        e.count += (a.type==='cancel'? -1 : 1);
+        e.rows.push({date:a.date, type: a.type==='add'?'臨時加訂':'臨時減訂'});
+      }
+    }
+    const empList = Object.values(perEmp).filter(e=>e.count!==0).sort((a,b)=> a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name,'zh-Hant'));
+    const grandTotal = empList.reduce((s,e)=>s+e.count,0);
+
+    if(empList.length===0){
+      resEl.innerHTML = `<div class="card"><h2>${p.label}</h2><div class="empty">此結算區間內查無訂購紀錄</div></div>`;
+      return;
+    }
+
+    // group rows by department
+    const deptGroups = {};
+    for(const e of empList){
+      if(!deptGroups[e.dept]) deptGroups[e.dept] = [];
+      deptGroups[e.dept].push(e);
+    }
+    const deptNames = Object.keys(deptGroups).sort();
+
+    let html = `<div class="card">
+      <div class="flex-between"><h2>${p.label}</h2><button class="secondary" id="exportBtn">匯出 Excel</button></div>
+      <div id="settleMsg"></div>
+      <div class="summary-row">
+        <div class="stat"><div class="n">${grandTotal}</div><div class="l">總份數</div></div>
+        <div class="stat"><div class="n">$${grandTotal*PRICE_STAFF}</div><div class="l">員工自付總額</div></div>
+        <div class="stat"><div class="n">$${grandTotal*(PRICE_FULL-PRICE_STAFF)}</div><div class="l">市場補助總額</div></div>
+      </div>
+      <table><thead><tr><th>部門 / 姓名</th><th class="num">份數</th><th class="num">應繳金額</th><th>結清狀態</th><th></th></tr></thead><tbody>
+      ${deptNames.map(dept=>{
+        const rows = deptGroups[dept];
+        const deptTotal = rows.reduce((s,e)=>s+e.count,0);
+        const allPaid = rows.every(e=>{ const r=state.paid[`${p.key}:${e.dept}:${e.name}`]; return r && r.paid; });
+        const deptRows = rows.map(e=>{
+          const pk = `${p.key}:${e.dept}:${e.name}`;
+          const rec = state.paid[pk];
+          const isPaid = rec && rec.paid;
+          return `<tr>
+            <td style="padding-left:24px;color:var(--ink-soft);">${e.name}</td>
+            <td class="num">${e.count}</td><td class="num">$${e.count*PRICE_STAFF}</td>
+            <td><span class="pill ${isPaid?'paid':'unpaid'}">${isPaid?'已結清':'未結清'}</span></td>
+            <td><button class="ghost" data-toggle-paid="${pk}" data-amt="${e.count*PRICE_STAFF}">${isPaid?'取消結清':'標記結清'}</button></td>
+          </tr>`;
+        }).join('');
+        return `<tr style="background:var(--surface-alt);">
+            <td><b>${dept}</b>（${rows.length}人）</td>
+            <td class="num"><b>${deptTotal}</b></td>
+            <td class="num"><b>$${deptTotal*PRICE_STAFF}</b></td>
+            <td><span class="pill ${allPaid?'paid':'unpaid'}">${allPaid?'全部已結清':'尚有未結清'}</span></td>
+            <td><button class="secondary" data-dept-toggle="${dept}" data-dept-paid="${allPaid?'1':'0'}">${allPaid?'整批取消結清':'整批結清本部門'}</button></td>
+          </tr>${deptRows}`;
+      }).join('')}
+      </tbody></table>
+    </div>`;
+    resEl.innerHTML = html;
+
+    document.getElementById('exportBtn').onclick = ()=>exportExcel(p, empList);
+    const settleMsg = document.getElementById('settleMsg');
+    function showSettleMsg(text, isErr){
+      settleMsg.innerHTML = `<div class="${isErr?'banner-err':'banner-ok'}">${text}</div>`;
+      setTimeout(()=>{ if(settleMsg.firstChild) settleMsg.innerHTML=''; }, 4000);
+    }
+    if(pendingMsg){ showSettleMsg(pendingMsg.text, pendingMsg.isErr); pendingMsg = null; }
+    resEl.querySelectorAll('[data-toggle-paid]').forEach(b=>{
+      b.onclick = async ()=>{
+        b.disabled = true;
+        const pk = b.dataset.togglePaid;
+        const cur = state.paid[pk];
+        const nextVal = (cur && cur.paid)
+          ? {paid:false, unpaidAt:new Date().toISOString()}
+          : {paid:true, paidAt:new Date().toISOString(), amount: parseInt(b.dataset.amt,10)};
+        const prevVal = state.paid[pk];
+        state.paid[pk] = nextVal;
+        const ok = await sSet('paid_status', state.paid);
+        if(!ok){
+          state.paid[pk] = prevVal; // roll back the optimistic update
+          b.disabled = false;
+          showSettleMsg('更新結清狀態失敗，請確認網路連線後再試一次。', true);
+          return;
+        }
+        pendingMsg = {text: nextVal.paid ? '已標記為已結清' : '已取消結清', isErr:false};
+        calc();
+      };
+    });
+    resEl.querySelectorAll('[data-dept-toggle]').forEach(b=>{
+      b.onclick = ()=>{
+        const markPaid = b.dataset.deptPaid !== '1';
+        armConfirm(b, `再按一次確認${markPaid?'整批結清':'整批取消結清'}`, async ()=>{
+          const dept = b.dataset.deptToggle;
+          const rows = deptGroups[dept];
+          const prevValues = {};
+          for(const e of rows){
+            const pk = `${p.key}:${e.dept}:${e.name}`;
+            prevValues[pk] = state.paid[pk];
+            state.paid[pk] = markPaid
+              ? {paid:true, paidAt:new Date().toISOString(), amount: e.count*PRICE_STAFF}
+              : {paid:false, unpaidAt:new Date().toISOString()};
+          }
+          const ok = await sSet('paid_status', state.paid);
+          if(!ok){
+            for(const pk in prevValues){ state.paid[pk] = prevValues[pk]; } // roll back
+            showSettleMsg('整批更新結清狀態失敗，請確認網路連線後再試一次。', true);
+            return;
+          }
+          pendingMsg = {text:`已將「${dept}」整批標記為${markPaid?'已結清':'未結清'}`, isErr:false};
+          calc();
+        });
+      };
+    });
+  }
+
+  function exportExcel(p, empList){
+    const wb = XLSX.utils.book_new();
+    const summaryData = [['部門','姓名','飯包份數','員工應繳(每份50)','原價金額(每份120)','市場補助金額','結清狀態']];
+    for(const e of empList){
+      const pk = `${p.key}:${e.dept}:${e.name}`;
+      const rec = state.paid[pk];
+      summaryData.push([e.dept, e.name, e.count, e.count*PRICE_STAFF, e.count*PRICE_FULL, e.count*(PRICE_FULL-PRICE_STAFF), (rec&&rec.paid)?'已結清':'未結清']);
+    }
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, ws1, '結算總表');
+
+    const detailData = [['部門','姓名','日期','星期','類型']];
+    for(const e of empList){
+      for(const r of e.rows){ detailData.push([e.dept, e.name, r.date, fmtDow(r.date), r.type]); }
+    }
+    const ws2 = XLSX.utils.aoa_to_sheet(detailData);
+    XLSX.utils.book_append_sheet(wb, ws2, '明細');
+
+    XLSX.writeFile(wb, `飯包結算_${p.key}.xlsx`);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
